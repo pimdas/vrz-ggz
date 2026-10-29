@@ -28,8 +28,11 @@ function renderSemantic(page){
 }
 function renderSemanticFields(page,block){
  const fields=semanticFields(page,block.id),linkFields=fields.filter(f=>f.tag==='a'&&f.kind!=='url'),normal=fields.filter(f=>f.kind!=='url'&&f.tag!=='a'),urls=fields.filter(f=>f.kind==='url');
- const groups=[];for(const f of normal){let last=groups.at(-1);if(!last||last.title!==f.section){last={title:f.section,fields:[]};groups.push(last);}last.fields.push(f);}
- const cardMode=groups.length>2&&['Behandelaanbod','Onze behandelaren','Onze werkwijze','Praktische informatie'].includes(block.title);
+ const cardMode=['Behandelaanbod','Onze behandelaren','Onze werkwijze','Praktische informatie'].includes(block.title);
+ const groups=[];let groupTitle='Algemeen',numbered=false;
+ for(const f of normal){if(cardMode){if(/^0\d\s*\//.test(f.text)){groupTitle=f.text.replace(/^0\d\s*\/\s*/,'');numbered=true;}else if(f.tag==='h3'&&!numbered||f.tag==='summary')groupTitle=semText(f.value).trim();}else groupTitle=f.section;
+  let last=groups.at(-1);if(!last||last.title!==groupTitle){last={title:groupTitle,fields:[]};groups.push(last);}last.fields.push(f);
+ }
  $('#sem-fields').innerHTML=groups.map((group,i)=>cardMode?`<details class="sem-card" ${i===0?'open':''}><summary>${esc(group.title)}</summary>${group.fields.map(f=>semanticControl(f,page)).join('')}</details>`:group.fields.map(f=>semanticControl(f,page)).join('')).join('');
  const linked=new Set();
  $('#sem-links').innerHTML='<h3>Knoppen en links</h3>'+urls.map(f=>{const label=linkFields.find(l=>l.members?.includes(f.anchor)||l.id===f.anchor);if(label)linked.add(label.id);return `<div class="link-settings">${label?semanticControl(label,page):`<h4>${esc(f.label||'Link')}</h4>`}<label for="s-${f.id}">Bestemming</label><input id="s-${f.id}" data-sem="${f.id}" value="${esc(semValue(f))}" placeholder="/pagina/ of https://…"></div>`;}).join('')+linkFields.filter(f=>!linked.has(f.id)).map(f=>semanticControl(f,page)).join('')+(!urls.length&&!linkFields.length?'<p class="muted">Dit blok heeft geen losse linkinstellingen.</p>':'');
