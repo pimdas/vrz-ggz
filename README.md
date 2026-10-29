@@ -41,4 +41,4 @@ Open `/beheer#setup=<BOOTSTRAP_TOKEN>` om het eerste beheerdersaccount aan te ma
 
 `public/` bevat de basis-HTML en assets. `lib/content.mjs` kent elk zichtbaar tekstfragment een stabiele sleutel toe op basis van brontekst, context en voorkomen. Als ontwikkelaars de brontekst zelf wijzigen, verandert de sleutel en wordt die nieuwe brontekst gebruikt. Controleer beheerwijzigingen bij structurele HTML-aanpassingen. Verwijder of hernoem geen contentvelden zonder de gevolgen te controleren.
 
-Wachttijden op homepage en wachttijdenpagina zijn afzonderlijke velden en moeten beide worden bijgewerkt. Bij een domeinwijziging moet ook `APP_URL` worden aangepast. Behoud een enkele replica wegens de lokale SQLite-opslag.
+De teksteditor toont per pagina een blokkenoverzicht. De aparte beheeroptie Wachttijden hergebruikt de bestaande tekstvelden en schrijft waarden in één transactie naar de homepage en wachttijdenpagina. Bestaande veldsleutels en wijzigingen blijven behouden. Bij een domeinwijziging moet ook `APP_URL` worden aangepast. Behoud een enkele replica wegens de lokale SQLite-opslag.

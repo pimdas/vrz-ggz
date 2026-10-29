@@ -8,8 +8,9 @@ import {once} from 'node:events';
 import {compileContent} from '../lib/content.mjs';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 test('Content compiler preserves the complete public appearance',async()=>{
- const c=await compileContent(path.resolve('public'));assert.equal(c.pages.filter(p=>!['header','footer'].includes(p.id)).length,20);
+ const c=await compileContent(path.resolve('public'));assert.equal(c.pages.filter(p=>!['header','footer','waiting'].includes(p.id)).length,20);
  for(const [file,html] of c.templates){const result=c.render(file,new Map());assert.equal(result,html.replace(/<!--cms:[a-f0-9]+-->|<!--\/cms-->/g,''));assert(!result.includes('<!--cms:'));}
+ const home=c.pages.find(p=>p.id==='index.html');assert(home.blocks.length>=8);assert(home.fields.every(f=>home.blocks.some(b=>b.id===f.block)));
  const headers=c.pages.find(p=>p.id==='header');assert(headers.fields.some(f=>f.text==='Contact'));
  const f=headers.fields.find(f=>f.text==='Contact');assert(c.render('index.html',new Map([[f.id,'<img src=x onerror=alert(1)>']])).includes('&lt;img'));
 });
@@ -28,6 +29,11 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  assert.equal((await api('login',{email:'admin@example.com',password:'wrong'})).r.status,401);
  assert.equal((await api('save',{changes:[]},admin,{headers:{Origin:'https://attacker.example'}})).r.status,403);
  assert.equal((await api('save',{changes:[]},{cookie:admin.cookie})).r.status,403);
+ let waitPages=(await api('pages',null,admin)).data;const waiting=waitPages.pages.find(p=>p.id==='waiting');assert.equal(waiting.controls.length,10);const ids=waiting.controls[0].ids;assert.equal(ids.length,2);
+ let savedWait=await api('save',{page:'waiting',revision:waitPages.revision,changes:ids.map(id=>({id,value:'17'}))},admin);assert.equal(savedWait.data.saved,2);
+ for(const route of ['/','/praktisch/wachttijden/'])assert.match(await(await fetch(base+route)).text(),/<strong>17 /);
+ const wh=(await api('history?page=waiting',null,admin)).data.history;assert.equal(wh.length,1);assert.equal((await api('undo',{id:wh[0].id,revision:savedWait.data.revision},admin)).r.status,200);
+ for(const route of ['/','/praktisch/wachttijden/'])assert.match(await(await fetch(base+route)).text(),/<strong>6 /);
  let pages=(await api('pages',null,admin)).data;let page=pages.pages.find(p=>p.id==='index.html');const field=page.fields.find(f=>f.tag==='h2');const original=field.value;
  result=await api('save',{page:page.id,revision:pages.revision,changes:[{id:field.id,value:'Nieuw verhaal <script>alert(1)</script>'}]},admin);assert.equal(result.r.status,200);assert.equal(result.data.saved,1);let rev=result.data.revision;
  let html=await (await fetch(base+'/')).text();assert(html.includes('Nieuw verhaal &lt;script&gt;'));assert(!html.includes('Nieuw verhaal <script>'));
