@@ -28,9 +28,9 @@ Open `/beheer#setup=<BOOTSTRAP_TOKEN>` om het eerste beheerdersaccount aan te ma
 
 ## Teksten en accounts
 
-- Alle zichtbare tekstfragmenten uit de HTML worden als velden aangeboden per pagina; menu en voettekst hebben gedeelde velden voor de hele website.
-- Bewerkingen zijn platte tekst. HTML wordt veilig als tekst weergegeven; nieuwe regels worden regeleinden.
-- Opslaan publiceert direct. De geschiedenis kan een wijziging terugdraaien als die velden sindsdien niet opnieuw zijn gewijzigd.
+- Homepage en individuele profielen gebruiken inhoudelijke velden: gecombineerde titels, volledige alinea’s en een beperkte rich-texteditor. Bestemmingen van knoppen staan onder Meer opties. De overige pagina’s behouden de blokeditor; menu en voettekst zijn gedeeld.
+- Rich text ondersteunt alinea’s, tussenkoppen, vet, cursief, lijsten en veilige links. De server verwijdert overige HTML en onveilige attributen. Gewone tekstvelden worden HTML-geëscapet.
+- Homepage en individuele profielen bewaren automatisch een gedeeld concept per pagina. Concepten staan duurzaam in SQLite en worden alleen met Publiceren live gezet. Versiecontrole voorkomt overschrijven van andermans concept; publicatie controleert of de live tekst nog overeenkomt. Een iframe met uitgeschakelde scripts toont het conceptvoorbeeld. Overige pagina’s en Wachttijden publiceren direct na opslaan. De geschiedenis kan een wijziging terugdraaien als die velden sindsdien niet opnieuw zijn gewijzigd.
 - Beheerders kunnen gebruikers toevoegen, een nieuwe wachtwoordlink maken, rollen wijzigen en accounts uitschakelen. Redacteuren kunnen alleen teksten beheren.
 - Activatielinks zijn eenmalig en 48 uur geldig. Deel de link handmatig; het systeem stuurt geen e-mail.
 - Sessies verlopen na acht uur. Wachtwoorden worden met scrypt gehasht; sessie- en uitnodigingstokens worden alleen gehasht bewaard. Schrijfacties controleren origin en CSRF-token.
@@ -41,4 +41,6 @@ Open `/beheer#setup=<BOOTSTRAP_TOKEN>` om het eerste beheerdersaccount aan te ma
 
 `public/` bevat de basis-HTML en assets. `lib/content.mjs` kent elk zichtbaar tekstfragment een stabiele sleutel toe op basis van brontekst, context en voorkomen. Als ontwikkelaars de brontekst zelf wijzigen, verandert de sleutel en wordt die nieuwe brontekst gebruikt. Controleer beheerwijzigingen bij structurele HTML-aanpassingen. Verwijder of hernoem geen contentvelden zonder de gevolgen te controleren.
 
-De teksteditor toont per pagina een blokkenoverzicht. De aparte beheeroptie Wachttijden hergebruikt de bestaande tekstvelden en schrijft waarden in één transactie naar de homepage en wachttijdenpagina. Bestaande veldsleutels en wijzigingen blijven behouden. Bij een domeinwijziging moet ook `APP_URL` worden aangepast. Behoud een enkele replica wegens de lokale SQLite-opslag.
+De teksteditor toont per pagina een blokkenoverzicht. De aparte beheeroptie Wachttijden hergebruikt de bestaande tekstvelden en schrijft waarden in één transactie naar de homepage en wachttijdenpagina. Bij aanpassen wordt de bijgewerkt-datum automatisch vernieuwd, tenzij die tekst expliciet zelf is aangepast. Bestaande veldsleutels en wijzigingen blijven behouden. Bij een domeinwijziging moet ook `APP_URL` worden aangepast. Behoud een enkele replica wegens de lokale SQLite-opslag.
+
+De nieuwe inhoudelijke velden worden in `lib/semantic.mjs` afgeleid boven op bestaande veldsleutels. Oude tekstwijzigingen blijven zichtbaar totdat een inhoudelijk veld wordt gepubliceerd. Pas bestaande groepssleutels niet zonder migratie aan; veranderde HTML-structuur kan de afleiding beïnvloeden. `drafts` bevat conceptversies; publicatie wist de wijzigingen maar verhoogt de versie om verouderde clients te blokkeren.

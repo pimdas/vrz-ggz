@@ -4,11 +4,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let toastTimer;
 function toast(message,bad=false){const el=$('#toast');el.textContent=message;el.className=bad?'bad':'';el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.hidden=true,bad?15000:5500);}
 async function api(route,data){const response=await fetch('/api/beheer/'+route,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json','X-CSRF-Token':state.csrf||''}:{},body:data?JSON.stringify(data):undefined});const result=await response.json();if(!response.ok){if(response.status===401&&state.user){state.user=null;renderAuth({});}throw new Error(result.error||'Het verzoek is niet gelukt.');}return result;}
-const dirty=()=>state.draft.size>0;
+const dirty=()=>semanticActive()?!!state.semPending||!!semSaving:state.draft.size>0;
 const confirmLeave=()=>!dirty()||confirm('Je hebt nog niet opgeslagen wijzigingen. Wil je die verwerpen?');
 window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.returnValue='';}});
 function pending(button,fn){return async e=>{e?.preventDefault();button.disabled=true;try{await fn();}catch(err){toast(err.message,true);}finally{button.disabled=false;}};}
-async function loadPages(){const data=await api('pages');state.pages=data.pages;state.revision=data.revision;state.draft.clear();if(!state.pages.some(p=>p.id===state.selected))state.selected=state.pages[0].id;}
+async function loadPages(){const data=await api('pages');state.pages=data.pages;state.semPage=null;state.revision=data.revision;state.draft.clear();if(!state.pages.some(p=>p.id===state.selected))state.selected=state.pages[0].id;}
 async function init(){try{const status=await api('status');state.user=status.user;state.csrf=status.csrf;if(state.user){await loadPages();renderShell();}else renderAuth(status);}catch(e){app.textContent='Beheer kan niet worden geladen. Herlaad de pagina.';toast(e.message,true);}}
 function renderAuth(status){
  const params=new URLSearchParams(location.hash.slice(1));let setup=params.get('setup'),invite=params.get('invite');
@@ -21,10 +21,10 @@ function renderAuth(status){
  }));
 }
 function renderShell(){app.innerHTML=`<header class="top"><a href="/beheer" aria-label="Beheer home"><img class="brand" src="/assets/logo.png" alt="Van Roosmalen – Zijlstra GGZ"></a><div class="top-actions"><span>${esc(state.user.name)}</span><a href="/" target="_blank" rel="noopener">Website bekijken ↗</a><button class="secondary" id="logout">Uitloggen</button></div></header><div class="layout"><nav class="sidebar" aria-label="Beheernavigatie"><button data-tab="texts">Webteksten</button><button data-tab="waiting">Wachttijden</button>${state.user.role==='admin'?'<button data-tab="users">Gebruikers</button><button data-tab="audit">Activiteiten</button>':''}<button data-tab="account">Mijn account</button><small>Van Roosmalen – Zijlstra<br>Websitebeheer</small></nav><main class="workspace" id="workspace"></main></div>`;
- $('#logout').onclick=pending($('#logout'),async()=>{if(!confirmLeave())return;await api('logout',{});state.user=null;state.draft.clear();renderAuth({});});
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{if(!confirmLeave())return;state.draft.clear();state.tab=b.dataset.tab;await renderTab();});renderTab();
+ $('#logout').onclick=pending($('#logout'),async()=>{if(!await prepareLeave())return;await api('logout',{});state.user=null;state.draft.clear();renderAuth({});});
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{if(!await prepareLeave())return;state.draft.clear();state.semPage=null;state.tab=b.dataset.tab;await renderTab();});renderTab();
 }
-async function renderTab(){document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));try{if(state.tab==='texts')renderTexts();if(state.tab==='waiting')renderWaiting();if(state.tab==='users')await renderUsers();if(state.tab==='audit')await renderAudit();if(state.tab==='account')renderAccount();}catch(e){toast(e.message,true);}}
+async function renderTab(){document.body.classList.remove('semantic-mode');document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));try{if(state.tab==='texts')renderTexts();if(state.tab==='waiting')renderWaiting();if(state.tab==='users')await renderUsers();if(state.tab==='audit')await renderAudit();if(state.tab==='account')renderAccount();}catch(e){toast(e.message,true);}}
 function blocksFor(page){
  if(page.blocks?.length)return page.blocks.map(b=>({...b,fields:page.fields.filter(f=>f.block===b.id)})).filter(b=>b.fields.length);
  return [{id:'all',title:page.title,fields:page.fields}];
@@ -36,7 +36,7 @@ function bindSave(page,render){
  $('#history').addEventListener('toggle',async e=>{if(e.target.open)await renderHistory();});updateSave();
 }
 function renderTexts(){
- const p=state.pages.find(p=>p.id===state.selected&&!p.dedicated)||state.pages[0];state.selected=p.id;const blocks=blocksFor(p),selected=blocks.find(b=>b.id===state.block);if(!selected)state.block=null;
+ const p=state.pages.find(p=>p.id===state.selected&&!p.dedicated)||state.pages[0];state.selected=p.id;if(p.semantic){renderSemantic(p);return;}document.body.classList.remove('semantic-mode');const blocks=blocksFor(p),selected=blocks.find(b=>b.id===state.block);if(!selected)state.block=null;
  $('#workspace').innerHTML=`<div class="page-top"><div><div class="eyebrow">Webteksten</div><h1>${esc(p.title)}</h1><p class="muted">Kies een pagina en open het blok dat je wilt aanpassen. Je ziet alleen de teksten van dat blok.</p></div></div><div class="editor-tools"><div><label for="page">Pagina</label><select id="page">${state.pages.filter(p=>!p.dedicated).map(p=>`<option value="${esc(p.id)}" ${p.id===state.selected?'selected':''}>${esc(p.title)}${['header','footer'].includes(p.id)?' · hele website':''}</option>`).join('')}</select></div><div><label for="search">Zoeken binnen ${selected?'dit blok':'deze pagina'}</label><input id="search" type="search" placeholder="Zoek een woord of zin…" value="${esc(state.filter)}"></div></div>${['header','footer'].includes(p.id)?'<p class="notice">Deze teksten worden op alle pagina’s aangepast.</p>':''}${selected?`<button class="secondary" id="back-blocks">← Alle blokken</button><div class="block-heading"><h2>${esc(selected.title)}</h2><p class="muted">${selected.fields.length} tekstvelden in dit blok</p></div>`:'<h2>Blokken op deze pagina</h2>'}<div id="blocks" class="block-grid" ${selected?'hidden':''}></div><div class="fields" id="fields" ${selected?'':'hidden'}></div><details id="history"><summary>Wijzigingsgeschiedenis van deze pagina</summary><div id="history-list" class="history"></div></details>${savebar(p.url)}`;
  $('#page').onchange=e=>{if(!confirmLeave()){e.target.value=state.selected;return;}state.selected=e.target.value;state.block=null;state.draft.clear();state.filter='';renderTexts();};
  $('#search').oninput=e=>{state.filter=e.target.value;if(state.block)renderFields();else renderBlocks();};
