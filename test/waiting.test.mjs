@@ -16,3 +16,20 @@ test('Waiting-time labels, pluralization and legacy values',async()=>{
  next.people[0].rows[0].label='<img src=x onerror=alert(1)>';const safe=validateWaiting(next,config);const html=c.render('index.html',new Map([[c.waiting.key,JSON.stringify(safe)]]));assert(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
  assert.equal(c.render('index.html',new Map()),c.render('index.html',new Map([[c.waiting.key,'']])));
 });
+
+test('Michel is added to existing settings without inventing a waiting time',async()=>{
+ const c=await compileContent('public');const config=c.waiting.read(new Map());
+ assert.deepEqual(config.people[3],{id:'michel',stopped:false,rows:[]});
+ const old={...config,people:config.people.slice(0,3),updated:'1 oktober 2026'};
+ const migrated=c.waiting.read(new Map([[c.waiting.key,JSON.stringify(old)]]));
+ assert.deepEqual(migrated.people.slice(0,3),old.people);assert.equal(migrated.updated,old.updated);
+ const checked=validateWaiting(migrated,migrated);
+ for(const page of ['index.html','praktisch/wachttijden/index.html']){
+  const values=new Map([[c.waiting.key,JSON.stringify(checked)]]);
+  assert(!c.render(page,values).includes('<article class="wait"><h3>Michel van Hest</h3>'));
+  checked.people[3].rows=[{id:'michel-1',label:'Basis GGZ',amount:1,unit:'week'}];
+  const html=c.render(page,new Map([[c.waiting.key,JSON.stringify(validateWaiting(checked,migrated))]]));
+  assert(html.includes('<article class="wait"><h3>Michel van Hest</h3>'));assert(html.includes('<strong>1 <span>week</span>'));
+  checked.people[3].rows=[];
+ }
+});

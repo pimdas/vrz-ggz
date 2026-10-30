@@ -34,7 +34,7 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  for(const route of ['/','/praktisch/wachttijden/'])assert.match(await(await fetch(base+route)).text(),/<strong>17 /);
  const wh=(await api('history?page=waiting',null,admin)).data.history;assert.equal(wh.length,1);assert.equal((await api('undo',{id:wh[0].id,revision:savedWait.data.revision},admin)).r.status,200);
  for(const route of ['/','/praktisch/wachttijden/'])assert.match(await(await fetch(base+route)).text(),/<strong>6 /);
- const initialWaiting=(await api('waiting',null,admin)).data;assert.equal(initialWaiting.config.people.length,3);
+ const initialWaiting=(await api('waiting',null,admin)).data;assert.equal(initialWaiting.config.people.length,4);
  const config=structuredClone(initialWaiting.config);config.people[0].rows[0].label='Eigen label';config.people[0].rows[0].amount=1;config.people[0].rows[0].unit='week';config.people[1].stopped=true;
  assert.equal((await api('waiting',{revision:initialWaiting.revision,config},{cookie:admin.cookie})).r.status,403);
  const savedConfig=await api('waiting',{revision:initialWaiting.revision,config},admin);assert.equal(savedConfig.r.status,200);
