@@ -35,9 +35,24 @@ function bindSave(page,render){
  $('#save').onclick=pending($('#save'),async()=>{const data=await api('save',{page:page.id,revision:state.revision,changes:[...state.draft].map(([id,value])=>({id,value}))});await loadPages();render();toast(page.dedicated?'Wachttijden bijgewerkt op beide pagina’s.':`${data.saved} tekst${data.saved===1?'':'en'} gepubliceerd.`);});
  $('#history').addEventListener('toggle',async e=>{if(e.target.open)await renderHistory();});updateSave();
 }
+function pageOptions(selected){
+ const available=state.pages.filter(p=>!p.dedicated),seen=new Set();
+ const groups=[
+  ['index.html','Homepage',[]],
+  ['behandelaanbod/index.html','Behandelaanbod',['basis-ggz','specialistische-ggz','jeugd-ggz','relatietherapie','psychomotorische-therapie-pmt']],
+  ['over-ons/index.html','Onze behandelaren',['geertje-zijlstra','tessa-van-roosmalen','ruud-van-roosmalen','michel-van-hest']],
+  ['praktisch/index.html','Praktisch',['werkwijze','wachttijden','tarieven-vergoeding','verwijzers','kwaliteit','crisis']],
+  ['contact/index.html','Contact',[]]
+ ];
+ const option=(id,label,child=false)=>{const page=available.find(p=>p.id===id);if(!page)return '';seen.add(id);return `<option value="${esc(id)}" ${id===selected?'selected':''}>${child?'  — ':''}${esc(label||page.title)}</option>`;};
+ let html='';for(const [id,label,children] of groups){html+=option(id,label);const prefix=id.slice(0,id.lastIndexOf('/')+1);for(const child of children)html+=option(prefix+child+'/index.html',null,true);}
+ for(const page of available)if(!seen.has(page.id)&&!['header','footer'].includes(page.id))html+=option(page.id);
+ const shared=available.filter(p=>['header','footer'].includes(p.id));if(shared.length)html+='<optgroup label="Gedeelde onderdelen">'+shared.map(p=>option(p.id,p.title)).join('')+'</optgroup>';
+ return html;
+}
 function renderTexts(){
  const p=state.pages.find(p=>p.id===state.selected&&!p.dedicated)||state.pages[0];state.selected=p.id;if(p.semantic){renderSemantic(p);return;}document.body.classList.remove('semantic-mode');const blocks=blocksFor(p),selected=blocks.find(b=>b.id===state.block);if(!selected)state.block=null;
- $('#workspace').innerHTML=`<div class="page-top"><div><div class="eyebrow">Webteksten</div><h1>${esc(p.title)}</h1><p class="muted">Kies een pagina en open het blok dat je wilt aanpassen. Je ziet alleen de teksten van dat blok.</p></div></div><div class="editor-tools"><div><label for="page">Pagina</label><select id="page">${state.pages.filter(p=>!p.dedicated).map(p=>`<option value="${esc(p.id)}" ${p.id===state.selected?'selected':''}>${esc(p.title)}${['header','footer'].includes(p.id)?' · hele website':''}</option>`).join('')}</select></div><div><label for="search">Zoeken binnen ${selected?'dit blok':'deze pagina'}</label><input id="search" type="search" placeholder="Zoek een woord of zin…" value="${esc(state.filter)}"></div></div>${['header','footer'].includes(p.id)?'<p class="notice">Deze teksten worden op alle pagina’s aangepast.</p>':''}${selected?`<button class="secondary" id="back-blocks">← Alle blokken</button><div class="block-heading"><h2>${esc(selected.title)}</h2><p class="muted">${selected.fields.length} tekstvelden in dit blok</p></div>`:'<h2>Blokken op deze pagina</h2>'}<div id="blocks" class="block-grid" ${selected?'hidden':''}></div><div class="fields" id="fields" ${selected?'':'hidden'}></div><details id="history"><summary>Wijzigingsgeschiedenis van deze pagina</summary><div id="history-list" class="history"></div></details>${savebar(p.url)}`;
+ $('#workspace').innerHTML=`<div class="page-top"><div><div class="eyebrow">Webteksten</div><h1>${esc(p.title)}</h1><p class="muted">Kies een pagina en open het blok dat je wilt aanpassen. Je ziet alleen de teksten van dat blok.</p></div></div><div class="editor-tools"><div><label for="page">Pagina</label><select id="page">${pageOptions(state.selected)}</select></div><div><label for="search">Zoeken binnen ${selected?'dit blok':'deze pagina'}</label><input id="search" type="search" placeholder="Zoek een woord of zin…" value="${esc(state.filter)}"></div></div>${['header','footer'].includes(p.id)?'<p class="notice">Deze teksten worden op alle pagina’s aangepast.</p>':''}${selected?`<button class="secondary" id="back-blocks">← Alle blokken</button><div class="block-heading"><h2>${esc(selected.title)}</h2><p class="muted">${selected.fields.length} tekstvelden in dit blok</p></div>`:'<h2>Blokken op deze pagina</h2>'}<div id="blocks" class="block-grid" ${selected?'hidden':''}></div><div class="fields" id="fields" ${selected?'':'hidden'}></div><details id="history"><summary>Wijzigingsgeschiedenis van deze pagina</summary><div id="history-list" class="history"></div></details>${savebar(p.url)}`;
  $('#page').onchange=e=>{if(!confirmLeave()){e.target.value=state.selected;return;}state.selected=e.target.value;state.block=null;state.draft.clear();state.filter='';renderTexts();};
  $('#search').oninput=e=>{state.filter=e.target.value;if(state.block)renderFields();else renderBlocks();};
  if(selected)$('#back-blocks').onclick=()=>{state.block=null;state.filter='';renderTexts();};
