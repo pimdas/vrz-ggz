@@ -8,7 +8,7 @@ import {once} from 'node:events';
 import {compileContent} from '../lib/content.mjs';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 test('Content compiler preserves the complete public appearance',async()=>{
- const c=await compileContent(path.resolve('public'));assert.equal(c.pages.filter(p=>!['header','footer','waiting'].includes(p.id)).length,20);
+ const c=await compileContent(path.resolve('public'));assert.equal(c.pages.filter(p=>!['header','footer','waiting','credentials'].includes(p.id)).length,20);
  for(const [file,html] of c.templates){const result=c.render(file,new Map());assert.equal(result,await readFile(path.join('public',file),'utf8'));assert(!result.includes('<!--cms:'));}
  const home=c.pages.find(p=>p.id==='index.html');assert(home.blocks.length>=8);assert(home.fields.every(f=>home.blocks.some(b=>b.id===f.block)));
  const headers=c.pages.find(p=>p.id==='header');assert(headers.fields.some(f=>f.text==='Contact'));
@@ -52,6 +52,14 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  assert.deepEqual((await api('waiting',null,admin)).data.config.people.map(p=>p.id),['michel','geertje','tessa','ruud']);
  const latestWaiting=(await api('history?page=waiting',null,admin)).data.history;const undoReopen=await api('undo',{id:latestWaiting[0].id,revision:reopen.data.revision},admin);assert.equal(undoReopen.r.status,200);
  assert.equal((await api('undo',{id:savedConfig.data.revision,revision:undoReopen.data.revision},admin)).r.status,200);assert((await(await fetch(base+'/')).text()).includes('<strong>6 '));
+ const memberships=(await api('credentials',null,admin)).data;assert.equal(memberships.config.people.length,4);
+ const certConfig=structuredClone(memberships.config);certConfig.people.find(p=>p.id==='ruud').items=[{id:'ruud-test',label:'Lid LVVP',logo:'lvvp',url:'https://lvvp.info/'}];
+ assert.equal((await api('credentials',{revision:memberships.revision,config:certConfig},{cookie:admin.cookie})).r.status,403);
+ const certSave=await api('credentials',{revision:memberships.revision,config:certConfig},admin);assert.equal(certSave.r.status,200);assert((await(await fetch(base+'/over-ons/ruud-van-roosmalen/')).text()).includes('Lid LVVP'));
+ assert.equal((await api('credentials',{revision:memberships.revision,config:certConfig},admin)).r.status,409);
+ const badCert=structuredClone(certConfig);badCert.people[0].items[0].url='javascript:alert(1)';assert.equal((await api('credentials',{revision:certSave.data.revision,config:badCert},admin)).r.status,400);
+ const certHistory=(await api('history?page=credentials',null,admin)).data.history;assert.equal((await api('undo',{id:certHistory[0].id,revision:certSave.data.revision},admin)).r.status,200);
+ assert(!(await(await fetch(base+'/over-ons/ruud-van-roosmalen/')).text()).includes('Lid LVVP'));
  let pages=(await api('pages',null,admin)).data;let page=pages.pages.find(p=>p.id==='index.html');const field=page.fields.find(f=>f.tag==='h2');const original=field.value;
  result=await api('save',{page:page.id,revision:pages.revision,changes:[{id:field.id,value:'Nieuw verhaal <script>alert(1)</script>'}]},admin);assert.equal(result.r.status,200);assert.equal(result.data.saved,1);let rev=result.data.revision;
  let html=await (await fetch(base+'/')).text();assert(html.includes('Nieuw verhaal &lt;script&gt;'));assert(!html.includes('Nieuw verhaal <script>'));

@@ -46,3 +46,12 @@ De teksteditor toont per pagina een blokkenoverzicht. De aparte beheeroptie Wach
 De nieuwe inhoudelijke velden worden in `lib/semantic.mjs` afgeleid boven op bestaande veldsleutels. Oude tekstwijzigingen blijven zichtbaar totdat een inhoudelijk veld wordt gepubliceerd. Pas bestaande groepssleutels niet zonder migratie aan; veranderde HTML-structuur kan de afleiding beïnvloeden. `drafts` bevat conceptversies; publicatie wist de wijzigingen maar verhoogt de versie om verouderde clients te blokkeren.
 
 De wachttijdeneditor heeft per persoon meerdere vrij te benoemen regels, keuzelijsten voor 1–10 en weken/maanden, en een aanmeldstop. Gestructureerde configuratie staat in het bestaande edits/revisions-mechanisme onder waiting-config-v1. Bestaande waarden in dagen blijven ongewijzigd bewaard totdat een gebruiker ze expliciet aanpast. Een aanmeldstop verbergt de waarden op beide openbare pagina’s, maar bewaart ze voor later. De Docker-build voert de volledige testsuite uit vóór deployment.
+
+### Lidmaatschappen en certificaten
+
+De beheeroptie **Lidmaatschappen** bewaart per behandelaar een lijst met naam, logo uit de bibliotheek (of geen logo) en optionele HTTPS-link. Opslaan publiceert het blok op de individuele profielpagina. Lege lijsten verbergen het blok. De configuratie staat als `credentials-config-v1` in SQLite; wijzigingen vallen onder de bestaande CSRF-, origin-, versie-, audit- en herstelcontroles. De statische standaardwaarden volgen de expliciete opgave van de praktijk: Geertje LVVP gevisiteerd, Tessa lid LVVP en EMDR Nederland. Ruud en Michel starten zonder vermeldingen. Bestaande profielteksten worden behouden.
+
+Logo’s lokaal opgeslagen vanaf de aangeleverde / officiële bronnen:
+- LVVP gevisiteerd: https://jeannettelekskes.nl/wp-content/uploads/2023/03/LVVP-Gevisiteerd.png
+- LVVP: https://www.lvvp.info/app/themes/lvvp/images/logo/logo.svg
+- EMDR Nederland: https://www.emdr.nl/assets/default/img/logo.png
