@@ -46,3 +46,10 @@
 .practitioner-page .prose h2{font-size:34px;margin:32px 0 24px}
 .practitioner-page .side{position:sticky;top:125px}
 @media(max-width:760px){.practitioner-page .page-hero{padding-bottom:50px}.practitioner-role{font-size:18px}.practitioner-image{margin-top:-20px}.practitioner-image figure{border-radius:22px}.practitioner-image img{aspect-ratio:4/3;object-position:center 28%}.practitioner-page .page-layout{padding-top:32px}.practitioner-page .side{position:static}}
+
+/* Keep each waiting-time value together beside flexible treatment labels. */
+.wait{container-type:inline-size}
+.waitrow{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center}
+.waitrow>span{min-width:0;overflow-wrap:anywhere}
+.waitrow strong{white-space:nowrap}
+@container(max-width:260px){.waitrow{grid-template-columns:minmax(0,1fr);gap:6px}.waitrow strong{justify-self:start}}
