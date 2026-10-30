@@ -28,9 +28,9 @@ Open `/beheer#setup=<BOOTSTRAP_TOKEN>` om het eerste beheerdersaccount aan te ma
 
 ## Teksten en accounts
 
-- Homepage en individuele profielen gebruiken inhoudelijke velden: gecombineerde titels, volledige alinea’s en een beperkte rich-texteditor. Bestemmingen van knoppen staan onder Meer opties. De overige pagina’s behouden de blokeditor; menu en voettekst zijn gedeeld.
+- Alle twintig openbare pagina’s gebruiken dezelfde inhoudelijke blokeditor: gecombineerde titels, volledige alinea’s, opsommingen en bewerkbare tabellen. Bestemmingen van knoppen staan onder Meer opties. Menu en voettekst blijven gedeelde instellingen.
 - Rich text ondersteunt alinea’s, tussenkoppen, vet, cursief, lijsten en veilige links. De server verwijdert overige HTML en onveilige attributen. Gewone tekstvelden worden HTML-geëscapet.
-- Homepage en individuele profielen bewaren automatisch een gedeeld concept per pagina. Concepten staan duurzaam in SQLite en worden alleen met Publiceren live gezet. Versiecontrole voorkomt overschrijven van andermans concept; publicatie controleert of de live tekst nog overeenkomt. Een iframe met uitgeschakelde scripts toont het conceptvoorbeeld. Overige pagina’s en Wachttijden publiceren direct na opslaan. De geschiedenis kan een wijziging terugdraaien als die velden sindsdien niet opnieuw zijn gewijzigd.
+- Alle openbare pagina’s bewaren automatisch een gedeeld concept per pagina. Concepten staan duurzaam in SQLite en worden alleen met Publiceren live gezet. Versiecontrole voorkomt overschrijven van andermans concept; publicatie controleert of de live tekst nog overeenkomt. Een iframe met uitgeschakelde scripts toont het conceptvoorbeeld. Wachttijden en de gedeelde menu- en voettekstinstellingen publiceren direct na opslaan. De geschiedenis kan een wijziging terugdraaien als die velden sindsdien niet opnieuw zijn gewijzigd.
 - Beheerders kunnen gebruikers toevoegen, een nieuwe wachtwoordlink maken, rollen wijzigen en accounts uitschakelen. Redacteuren kunnen alleen teksten beheren.
 - Activatielinks zijn eenmalig en 48 uur geldig. Deel de link handmatig; het systeem stuurt geen e-mail.
 - Sessies verlopen na acht uur. Wachtwoorden worden met scrypt gehasht; sessie- en uitnodigingstokens worden alleen gehasht bewaard. Schrijfacties controleren origin en CSRF-token.

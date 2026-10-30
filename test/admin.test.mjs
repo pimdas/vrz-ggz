@@ -76,6 +76,22 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  const richPublish=await api('publish',{page:page.id,version:richDraft.data.draft.version},admin);assert.equal(richPublish.r.status,200);assert((await(await fetch(base+'/')).text()).includes('<strong>Veilig gepubliceerd</strong>'));
  assert.equal((await api('save',{page:page.id,revision:richPublish.data.revision,changes:[{id:rich.members[0],value:'Oude editor'}]},admin)).r.status,409);
  let richHistory=(await api('history?page=index.html',null,admin)).data.history;assert.equal((await api('undo',{id:richHistory[0].id,revision:richPublish.data.revision},admin)).r.status,200);
+ // Every public page supports a safe preview and the same draft/publish workflow.
+ for(const candidate of (await api('pages',null,admin)).data.pages.filter(p=>p.semantic)){
+  const f=candidate.fields.find(f=>f.semantic&&f.tag==='h1');assert(f,candidate.id);
+  const preview=await api('preview',{page:candidate.id,changes:[{id:f.id,value:'Voorbeeldtitel'}],focus:f.id},admin);
+  assert.equal(preview.r.status,200,candidate.id);assert(preview.data.html.includes('Voorbeeldtitel'),candidate.id);
+ }
+ for(const id of ['behandelaanbod/basis-ggz/index.html','praktisch/tarieven-vergoeding/index.html']){
+  const candidate=(await api('pages',null,admin)).data.pages.find(p=>p.id===id);
+  const f=candidate.fields.find(f=>id.includes('tarieven')?f.semantic&&f.tag==='table':f.semantic&&f.kind==='rich');
+  const value=id.includes('tarieven')?f.value.replace('€ 174,83','€ 175,00'):'<p>Testtekst voor deze pagina.</p>';
+  const draft=await api('draft',{page:id,version:candidate.draft.version,changes:[{id:f.id,value}]},admin);assert.equal(draft.r.status,200);
+  const published=await api('publish',{page:id,version:draft.data.draft.version},admin);assert.equal(published.r.status,200);
+  assert((await(await fetch(base+candidate.url)).text()).includes(id.includes('tarieven')?'€ 175,00':'Testtekst voor deze pagina.'));
+  const history=(await api('history?page='+encodeURIComponent(id),null,admin)).data.history;
+  assert.equal((await api('undo',{id:history[0].id,revision:published.data.revision},admin)).r.status,200);
+ }
  result=await api('users',{email:'editor@example.com',name:'Redacteur',role:'editor'},admin);assert.equal(result.r.status,201);const invite=result.data.token;
  assert.equal((await api('accept',{token:invite,password:'short'})).r.status,400);
  assert.equal((await api('accept',{token:invite,password:'EditorPassword123!'},editor)).r.status,200);
