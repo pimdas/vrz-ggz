@@ -41,8 +41,9 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  for(const route of ['/','/praktisch/wachttijden/']){const h=await(await fetch(base+route)).text();assert(h.includes('Eigen label'));assert(h.includes('<strong>1 <span>week</span>'));assert(!h.includes('<strong>240 '));}
  const stale=structuredClone(config);stale.people[0].rows[0].amount=2;assert.equal((await api('waiting',{revision:initialWaiting.revision,config:stale},admin)).r.status,409);
  const bad=structuredClone(config);bad.people[0].rows[0].amount=11;assert.equal((await api('waiting',{revision:savedConfig.data.revision,config:bad},admin)).r.status,400);
- const restored=(await api('waiting',null,admin)).data;restored.config.people[1].stopped=false;
+ const restored=(await api('waiting',null,admin)).data;restored.config.people[1].stopped=false;restored.config.people.reverse();
  const reopen=await api('waiting',{revision:restored.revision,config:restored.config},admin);assert.equal(reopen.r.status,200);assert((await(await fetch(base+'/')).text()).includes('<strong>240 <span>dagen</span>'));
+ assert.deepEqual((await api('waiting',null,admin)).data.config.people.map(p=>p.id),['michel','geertje','tessa','ruud']);
  const latestWaiting=(await api('history?page=waiting',null,admin)).data.history;const undoReopen=await api('undo',{id:latestWaiting[0].id,revision:reopen.data.revision},admin);assert.equal(undoReopen.r.status,200);
  assert.equal((await api('undo',{id:savedConfig.data.revision,revision:undoReopen.data.revision},admin)).r.status,200);assert((await(await fetch(base+'/')).text()).includes('<strong>6 '));
  let pages=(await api('pages',null,admin)).data;let page=pages.pages.find(p=>p.id==='index.html');const field=page.fields.find(f=>f.tag==='h2');const original=field.value;

@@ -33,3 +33,16 @@ test('Michel is added to existing settings without inventing a waiting time',asy
   checked.people[3].rows=[];
  }
 });
+
+test('Custom practitioner order survives validation and renders on both pages',async()=>{
+ const c=await compileContent('public');const current=c.waiting.read(new Map());
+ const input=structuredClone(current);input.people.reverse();input.people[0].stopped=true;
+ const checked=validateWaiting(input,current);assert.deepEqual(checked.people.map(p=>p.id),['michel','geertje','tessa','ruud']);
+ const values=new Map([[c.waiting.key,JSON.stringify(checked)]]);
+ assert.deepEqual(c.waiting.read(values).people.map(p=>p.id),checked.people.map(p=>p.id));
+ for(const page of ['index.html','praktisch/wachttijden/index.html']){
+  const html=c.render(page,values);const positions=checked.people.map(p=>html.indexOf('<article class="wait"><h3>'+c.waiting.names[p.id]+'</h3>'));
+  assert(positions.every(p=>p>=0));assert.deepEqual([...positions].sort((a,b)=>a-b),positions);
+ }
+ const duplicate=structuredClone(input);duplicate.people[1]=duplicate.people[0];assert.throws(()=>validateWaiting(duplicate,current));
+});
