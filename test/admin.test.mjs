@@ -22,6 +22,10 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  async function api(route,body,actor={},options={}){const r=await fetch(base+'/api/beheer/'+route,{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json',Origin:base}:{}),...(actor.cookie?{Cookie:actor.cookie}:{}),...(actor.csrf?{'X-CSRF-Token':actor.csrf}:{}),...options.headers},body:body?JSON.stringify(body):undefined});const data=await r.json();const cookie=r.headers.get('set-cookie');if(cookie)actor.cookie=cookie.split(';')[0];if(data.csrf)actor.csrf=data.csrf;return {r,data,cookie};}
  try{
  await start();assert.equal((await api('status')).data.setup,true);
+ const publicHome=await fetch(base+'/');assert.equal(publicHome.headers.get('cache-control'),'no-cache');const publicHTML=await publicHome.text();const cssURL=publicHTML.match(/href="(\/assets\/friendly\.css\?v=[a-f0-9]{12})"/)[1];
+ assert((await(await fetch(base+'/praktisch/wachttijden/')).text()).includes(cssURL));
+ const css=await fetch(base+cssURL);assert.equal(css.status,200);assert.equal(css.headers.get('cache-control'),'no-cache');assert((await css.text()).includes('.waitrow strong{white-space:nowrap}'));
+
  assert.equal((await api('pages')).r.status,401);
  assert.equal((await api('setup',{token:'wrong',email:'admin@example.com',name:'Admin',password:'TestPassword123!'})).r.status,403);
  let result=await api('setup',{token:'test-bootstrap-token',email:'admin@example.com',name:'Admin',password:'TestPassword123!'},admin);assert.equal(result.r.status,201);assert.match(result.cookie,/HttpOnly/);assert.match(result.cookie,/Secure/);assert.match(result.cookie,/SameSite=Strict/);
