@@ -34,6 +34,17 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  for(const route of ['/','/praktisch/wachttijden/'])assert.match(await(await fetch(base+route)).text(),/<strong>17 /);
  const wh=(await api('history?page=waiting',null,admin)).data.history;assert.equal(wh.length,1);assert.equal((await api('undo',{id:wh[0].id,revision:savedWait.data.revision},admin)).r.status,200);
  for(const route of ['/','/praktisch/wachttijden/'])assert.match(await(await fetch(base+route)).text(),/<strong>6 /);
+ const initialWaiting=(await api('waiting',null,admin)).data;assert.equal(initialWaiting.config.people.length,3);
+ const config=structuredClone(initialWaiting.config);config.people[0].rows[0].label='Eigen label';config.people[0].rows[0].amount=1;config.people[0].rows[0].unit='week';config.people[1].stopped=true;
+ assert.equal((await api('waiting',{revision:initialWaiting.revision,config},{cookie:admin.cookie})).r.status,403);
+ const savedConfig=await api('waiting',{revision:initialWaiting.revision,config},admin);assert.equal(savedConfig.r.status,200);
+ for(const route of ['/','/praktisch/wachttijden/']){const h=await(await fetch(base+route)).text();assert(h.includes('Eigen label'));assert(h.includes('<strong>1 <span>week</span>'));assert(!h.includes('<strong>240 '));}
+ const stale=structuredClone(config);stale.people[0].rows[0].amount=2;assert.equal((await api('waiting',{revision:initialWaiting.revision,config:stale},admin)).r.status,409);
+ const bad=structuredClone(config);bad.people[0].rows[0].amount=11;assert.equal((await api('waiting',{revision:savedConfig.data.revision,config:bad},admin)).r.status,400);
+ const restored=(await api('waiting',null,admin)).data;restored.config.people[1].stopped=false;
+ const reopen=await api('waiting',{revision:restored.revision,config:restored.config},admin);assert.equal(reopen.r.status,200);assert((await(await fetch(base+'/')).text()).includes('<strong>240 <span>dagen</span>'));
+ const latestWaiting=(await api('history?page=waiting',null,admin)).data.history;const undoReopen=await api('undo',{id:latestWaiting[0].id,revision:reopen.data.revision},admin);assert.equal(undoReopen.r.status,200);
+ assert.equal((await api('undo',{id:savedConfig.data.revision,revision:undoReopen.data.revision},admin)).r.status,200);assert((await(await fetch(base+'/')).text()).includes('<strong>6 '));
  let pages=(await api('pages',null,admin)).data;let page=pages.pages.find(p=>p.id==='index.html');const field=page.fields.find(f=>f.tag==='h2');const original=field.value;
  result=await api('save',{page:page.id,revision:pages.revision,changes:[{id:field.id,value:'Nieuw verhaal <script>alert(1)</script>'}]},admin);assert.equal(result.r.status,200);assert.equal(result.data.saved,1);let rev=result.data.revision;
  let html=await (await fetch(base+'/')).text();assert(html.includes('Nieuw verhaal &lt;script&gt;'));assert(!html.includes('Nieuw verhaal <script>'));
