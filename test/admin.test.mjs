@@ -24,6 +24,8 @@ test('Authentication, editorial publishing, invitations, permissions, history an
  await start();assert.equal((await api('status')).data.setup,true);
  const publicHome=await fetch(base+'/');assert.equal(publicHome.headers.get('cache-control'),'no-cache');const publicHTML=await publicHome.text();const cssURL=publicHTML.match(/href="(\/assets\/friendly\.css\?v=[a-f0-9]{12})"/)[1];
  assert((await(await fetch(base+'/praktisch/wachttijden/')).text()).includes(cssURL));
+ const quality=await(await fetch(base+'/praktisch/kwaliteit/')).text();assert(!quality.includes('/wp-content/'));const docs=[...quality.matchAll(/href="(\/documenten\/[^" ]+\.pdf)"/g)].map(m=>m[1]);assert.equal(docs.length,6);
+ for(const url of docs){const response=await fetch(base+url);assert.equal(response.status,200,url);assert.match(response.headers.get('content-type'),/^application\/pdf/);assert.equal(Buffer.from(await response.arrayBuffer()).subarray(0,5).toString(),'%PDF-');}
  const css=await fetch(base+cssURL);assert.equal(css.status,200);assert.equal(css.headers.get('cache-control'),'no-cache');assert((await css.text()).includes('.waitrow strong{white-space:nowrap}'));
 
  assert.equal((await api('pages')).r.status,401);
